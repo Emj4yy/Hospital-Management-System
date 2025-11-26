@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admissions</title>
+  <style>
+    /* Inline critical styles to guarantee visibility for discharged badge */
+    .badge.status-discharged,
+    [class*="status-discharged" i] {
+      background: linear-gradient(90deg,#374151,#1f2937) !important;
+      color: #fff !important;
+      border: 1px solid rgba(0,0,0,0.12) !important;
+      box-shadow: 0 2px 6px rgba(31,41,55,0.12) !important;
+      padding: .35em .5em !important;
+      border-radius: .4rem !important;
+    }
+  </style>
+</head>
+<body>
+  
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/app.css?v=20251103004733" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <nav id="main-navbar-hm" class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4" role="navigation" aria-label="Main navigation">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center text-decoration-none" href="/dashboard">
+                <div class="brand-badge px-2 py-1 me-2" aria-hidden="true">HM</div>
+                <div class="d-flex flex-column">
+                    <span class="fw-bold">Hospital Management</span>
+                    <small class="muted">Comprehensive • Caring • Efficient</small>
+                </div>
+            </a>
+
+            <!-- quick-actions removed to simplify navbar visual - was: New Patient / Appointments / Billing buttons -->
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center">
+                    <li class="nav-item"><a class="nav-link " href="/dashboard">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link " href="/patients">Patients</a></li>
+                    <li class="nav-item"><a class="nav-link " href="/appointments">Appointments</a></li>
+                    <li class="nav-item"><a class="nav-link " href="/doctors">Doctors</a></li>
+                    <li class="nav-item"><a class="nav-link " href="/departments">Departments</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/admissions">Admissions</a></li>
+                    <li class="nav-item"><a class="nav-link " href="/prescriptions">Prescriptions</a></li>
+                    <li class="nav-item"><a class="nav-link " href="/billing">Billing</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <script>
+      (function(){
+        // Robust duplicate-navbar remover:
+        // - Ensures only the first navbar with the same brand text stays.
+        // - Works even if header fragments are inserted later by observing DOM mutations.
+
+        function removeDuplicateNavbars(){
+          try{
+            var navs = Array.prototype.slice.call(document.querySelectorAll('nav[id^="main-navbar-hm"]'));
+            if(!navs || navs.length <= 1) return;
+
+            // Use the first navbar as canonical. Remove any later navs that appear visually identical by brand text
+            var canonical = navs[0];
+            var canonicalBrand = (canonical.querySelector('.navbar-brand') || canonical).textContent.trim();
+
+            for(var i = 1; i < navs.length; i++){
+              var n = navs[i];
+              var brand = (n.querySelector('.navbar-brand') || n).textContent.trim();
+              // If brand matches (or if IDs clash), remove the duplicate instance.
+              if(brand === canonicalBrand || n.id === canonical.id){
+                n.parentNode && n.parentNode.removeChild(n);
+              }
+            }
+          }catch(e){
+            // no-op
+          }
+        }
+
+        // Run on DOM ready
+        if(document.readyState === 'loading'){
+          document.addEventListener('DOMContentLoaded', removeDuplicateNavbars);
+        } else {
+          // already ready
+          removeDuplicateNavbars();
+        }
+
+        // Observe DOM for later additions (debounced)
+        var observer;
+        try{
+          var debounce;
+          observer = new MutationObserver(function(mutations){
+            if(debounce) clearTimeout(debounce);
+            debounce = setTimeout(removeDuplicateNavbars, 80);
+          });
+          observer.observe(document.documentElement || document.body, {childList:true, subtree:true});
+
+          // Stop observing after some time (safety) - navbars won't be added after initial render in normal cases
+          setTimeout(function(){ observer.disconnect(); }, 5000);
+        }catch(e){ /* MutationObserver not supported - fine */ }
+      })();
+    </script>
+  <div class="container">
+    <div class="page-title"><span class="emoji">🏨</span><h1 class="m-0">Admissions</h1></div>
+    <div id="alertPlaceholder"></div>
+    
+
+    <!-- Filter form (unchanged) -->
+    <div class="card mb-3 form-section">
+      <div class="card-body">
+        <form action="/admissions" method="get" class="row g-2 align-items-end">
+          <div class="col-md-2">
+            <select class="form-select form-select-sm" name="status">
+              <option value="">Status (All)</option>
+              <option value="ADMITTED" >ADMITTED</option>
+              <option value="DISCHARGED" >DISCHARGED</option>
+            </select>
+          </div>
+          <div class="col-md-2"><input class="form-control form-control-sm" type="date" name="from" value=""></div>
+          <div class="col-md-2"><input class="form-control form-control-sm" type="date" name="to" value=""></div>
+          <div class="col-md-3">
+            <select class="form-select form-select-sm" name="patientId">
+              <option value="">Patient (All)</option>
+                <option value="1" >Mayrielle Joy Latigo</option>
+                <option value="3" >John Michael Reyes</option>
+                <option value="5" >Maria Santos</option>
+                <option value="6" >Patricia Ann Dela Cruz</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <select class="form-select form-select-sm" name="doctorId">
+              <option value="">Doctor (All)</option>
+                <option value="1" >Dr. Angela Mendoza - Cardiology Department</option>
+                <option value="2" >Dr. Liza Dominguez - Obstetrics and Gynecology (OB-GYN)</option>
+                <option value="3" >Dr. Katrina Villanueva - -</option>
+                <option value="4" >Dr. Raymond Gutierrez - Pharmacy Department</option>
+            </select>
+          </div>
+          <div class="col-md-1"><button class="btn btn-outline-secondary btn-sm w-100">Filter</button></div>
+        </form>
+      </div>
+    </div>
+
+    <div class="form-section mb-3">
+      <form id="admitForm" class="row g-2">
+        <div class="col-md-4">
+          <select class="form-select" id="adPatientId" required>
+            <option value="">Select Patient</option>
+              <option value="1">Mayrielle Joy Latigo</option>
+              <option value="3">John Michael Reyes</option>
+              <option value="5">Maria Santos</option>
+              <option value="6">Patricia Ann Dela Cruz</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <select class="form-select" id="adDoctorId" required>
+            <option value="">Select Doctor</option>
+              <option value="1">Dr. Angela Mendoza - Cardiology Department</option>
+              <option value="2">Dr. Liza Dominguez - Obstetrics and Gynecology (OB-GYN)</option>
+              <option value="3">Dr. Katrina Villanueva - -</option>
+              <option value="4">Dr. Raymond Gutierrez - Pharmacy Department</option>
+          </select>
+        </div>
+        <div class="col-md-3"><input class="form-control" id="adRoom" placeholder="Room Number"></div>
+        <div class="col-md-1"><button class="btn btn-primary w-100" id="admitBtn" type="submit">Admit</button></div>
+      </form>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-striped table-hover">
+        <thead><tr><th>ID</th><th>Patient</th><th>Doctor</th><th>Room</th><th>Status</th><th>Admitted</th><th>Discharged</th><th>Actions</th></tr></thead>
+        <tbody>
+            <tr data-admission-id="1">
+              <td>1</td>
+              <td>John Michael Reyes</td>
+              <td>Dr. Angela Mendoza</td>
+              <td>001</td>
+              <td>
+                  <span class="badge status-admitted">ADMITTED</span>
+              </td>
+              <td>2025-11-02 19:46</td>
+              <td>-
+              </td>
+              <td>
+                  <button class="btn btn-sm btn-success ad-discharge-btn" data-id="1">Discharge</button>
+              </td>
+            </tr>
+                      <tr data-admission-id="2">
+              <td>2</td>
+              <td>Maria Santos</td>
+              <td>Dr. Liza Dominguez</td>
+              <td>002</td>
+              <td>
+                  <span class="badge status-discharged" style="background:linear-gradient(90deg,#374151,#1f2937);color:#fff;border:1px solid rgba(0,0,0,0.12);box-shadow:0 2px 6px rgba(31,41,55,0.12);padding:.35em .5em;border-radius:.4rem;display:inline-block">DISCHARGED</span>
+              </td>
+              <td>2025-11-02 19:47</td>
+              <td>2025-11-02 19:47
+              </td>
+              <td>
+              </td>
+            </tr>
+                      <tr data-admission-id="3">
+              <td>3</td>
+              <td>Patricia Ann Dela Cruz</td>
+              <td>Dr. Raymond Gutierrez</td>
+              <td>003</td>
+              <td>
+                  <span class="badge status-admitted">ADMITTED</span>
+              </td>
+              <td>2025-11-02 21:53</td>
+              <td>-
+              </td>
+              <td>
+                  <button class="btn btn-sm btn-success ad-discharge-btn" data-id="3">Discharge</button>
+              </td>
+            </tr>
+                  </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const alertPlaceholder = document.getElementById('alertPlaceholder');
+      function showAlert(message, type){
+        alertPlaceholder.innerHTML = '<div class="alert alert-' + type + ' alert-dismissible fade show" role="alert">' + message + '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
+      }
+
+      const admitForm = document.getElementById('admitForm');
+      admitForm && admitForm.addEventListener('submit', async function(e){
+        e.preventDefault();
+        const patientId = Number(document.getElementById('adPatientId').value);
+        const doctorId = Number(document.getElementById('adDoctorId').value);
+        const room = document.getElementById('adRoom').value.trim() || null;
+        if(!patientId || !doctorId){ showAlert('Patient and doctor are required','warning'); return; }
+        const payload = { patient: { id: patientId }, doctor: { id: doctorId }, roomNumber: room };
+        try{
+          const res = await fetch('/api/admissions', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+          if(res.ok){ showAlert('Patient admitted','success'); setTimeout(()=> location.reload(),700); }
+          else { const txt = await res.text(); showAlert('Error: '+txt,'danger'); }
+        }catch(err){ showAlert('Unexpected: '+err.message, 'danger'); }
+      });
+
+      // Discharge buttons
+      document.querySelectorAll('.ad-discharge-btn').forEach(btn => btn.addEventListener('click', async function(e){
+        const id = this.dataset.id;
+        if(!confirm('Discharge patient?')) return;
+        try{
+          const res = await fetch('/api/admissions/'+id+'/discharge', { method: 'PUT' });
+          if(res.ok){ showAlert('Patient discharged','success'); setTimeout(()=> location.reload(),500); }
+          else { const txt = await res.text(); showAlert('Error: '+txt,'danger'); }
+        }catch(err){ showAlert('Unexpected error: '+err.message,'danger'); }
+      }));
+    })();
+  </script>
+
+<footer class="footer py-4 mt-6 bg-light">
+  <div class="container d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-3">
+      <div class="muted">&copy; 2025 Hospital Management</div>
+      <small class="muted">All rights reserved.</small>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      <a href="/dashboard" class="muted small">Dashboard</a>
+      <a href="/patients" class="muted small">Patients</a>
+      <a href="/appointments" class="muted small">Appointments</a>
+      <a href="/prescriptions" class="muted small">Prescriptions</a>
+    </div>
+  </div>
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
